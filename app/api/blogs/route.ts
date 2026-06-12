@@ -74,14 +74,27 @@ export async function POST(request: NextRequest) {
     }
 }
 export async function DELETE(request: NextRequest) {
-    const id = await request.nextUrl.searchParams.get('id');
-    const blog = await BlogModel.findById(id);
+    const id = request.nextUrl.searchParams.get("id");
 
-    if (blog.image) {
-        const publicId = blog.image.split('/').pop().split('.')[0]; 
-        await cloudinary.uploader.destroy(publicId);
+    const deletedBlog = await BlogModel.findByIdAndDelete(id);
+
+    if (!deletedBlog) {
+        return NextResponse.json(
+            { success: false, msg: "Blog not found" },
+            { status: 404 }
+        );
     }
 
-    await BlogModel.findByIdAndDelete(id);
-    return NextResponse.json({ msg: "Blog Deleted Successfully" });
+    if (deletedBlog.image) {
+        const publicId = deletedBlog.image.split("/").pop()?.split(".")[0];
+
+        if (publicId) {
+            await cloudinary.uploader.destroy(publicId);
+        }
+    }
+
+    return NextResponse.json({
+        success: true,
+        msg: "Blog Deleted Successfully",
+    });
 }
